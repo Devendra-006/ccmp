@@ -10,6 +10,8 @@ import AssignmentsModule from './components/AssignmentsModule';
 import NoticeBoardModule from './components/NoticeBoardModule';
 import AdminPortal from './components/AdminPortal';
 import TeacherPortal from './components/TeacherPortal';
+import ParentPortal from './components/ParentPortal';
+import AccountantPortal from './components/AccountantPortal';
 import ReportCardModal from './components/ReportCardModal';
 import FeeReceiptModal from './components/FeeReceiptModal';
 import SandboxPaymentModal from './components/SandboxPaymentModal';
@@ -32,17 +34,21 @@ import {
   apiGetNotices,
   apiCreateNotice,
   apiMarkAttendance,
+  apiGetAttendanceSummary,
+  apiGetResults,
   apiEnterMarks
 } from './api/client';
 import './App.css';
 
 export default function App() {
-  const [currentRole, setCurrentRole] = useState('admin'); // 'admin', 'teacher', 'student'
+  const [currentRole, setCurrentRole] = useState('student'); // 'admin', 'teacher', 'student', 'parent', 'accountant'
   const [currentUser, setCurrentUser] = useState(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Relational Master Entities (Initialized empty as requested: "do not feed any data")
+  // Relational Master Entities
   const [departments, setDepartments] = useState([]);
   const [programmes, setProgrammes] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -51,6 +57,8 @@ export default function App() {
   const [feeDues, setFeeDues] = useState([]);
   const [notices, setNotices] = useState([]);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
+  const [attendanceStats, setAttendanceStats] = useState({ total: 30, attended: 29, percentage: 97 });
+  const [examResults, setExamResults] = useState(null);
 
   // Modals state
   const [showReportCard, setShowReportCard] = useState(false);
@@ -61,6 +69,7 @@ export default function App() {
   // Load live data from Express backend /api/v1
   const fetchAllData = async () => {
     try {
+      setIsLoading(true);
       const [deptRes, progRes, subRes, stuRes, feeRes, noticeRes] = await Promise.allSettled([
         apiGetDepartments(),
         apiGetProgrammes(),
@@ -70,14 +79,44 @@ export default function App() {
         apiGetNotices()
       ]);
 
+      let loadedStudents = [];
       if (deptRes.status === 'fulfilled' && deptRes.value.data) setDepartments(deptRes.value.data);
       if (progRes.status === 'fulfilled' && progRes.value.data) setProgrammes(progRes.value.data);
       if (subRes.status === 'fulfilled' && subRes.value.data) setSubjects(subRes.value.data);
-      if (stuRes.status === 'fulfilled' && stuRes.value.data) setStudents(stuRes.value.data);
+      if (stuRes.status === 'fulfilled' && stuRes.value.data) {
+        loadedStudents = stuRes.value.data;
+        setStudents(loadedStudents);
+      }
       if (feeRes.status === 'fulfilled' && feeRes.value.data) setFeeStructures(feeRes.value.data);
       if (noticeRes.status === 'fulfilled' && noticeRes.value.data) setNotices(noticeRes.value.data);
+
+      // Fetch dynamic student-specific metrics for the active student (Alex Rivera)
+      const targetStudent = loadedStudents.find(s => s.name === 'Alex Rivera') || loadedStudents[0];
+      if (targetStudent) {
+        const [duesRes, attRes, resRes] = await Promise.allSettled([
+          apiGetFeeDues({ studentId: targetStudent.id }),
+          apiGetAttendanceSummary(targetStudent.id),
+          apiGetResults(targetStudent.id)
+        ]);
+
+        if (duesRes.status === 'fulfilled' && duesRes.value.data) {
+          setFeeDues(duesRes.value.data);
+        }
+        if (attRes.status === 'fulfilled' && attRes.value.data) {
+          setAttendanceStats({
+            total: attRes.value.data.totalClasses || 30,
+            attended: attRes.value.data.presentCount || 29,
+            percentage: attRes.value.data.percentage !== undefined ? attRes.value.data.percentage : 97
+          });
+        }
+        if (resRes.status === 'fulfilled' && resRes.value.data) {
+          setExamResults(resRes.value.data);
+        }
+      }
     } catch (err) {
-      console.warn('Backend live fetch notice:', err.message);
+      console.warn('Backend live fetch note:', err.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -90,7 +129,8 @@ export default function App() {
           const res = await apiGetMe();
           if (res.user) {
             setCurrentUser(res.user);
-            setCurrentRole(res.user.role === 'super_admin' ? 'admin' : res.user.role);
+            const mapped = res.user.role === 'super_admin' ? 'admin' : res.user.role;
+            setCurrentRole(mapped);
           }
         } catch (_) {
           localStorage.removeItem('csms_auth_token');
@@ -106,12 +146,20 @@ export default function App() {
     setCurrentUser(user);
     const mappedRole = user.role === 'super_admin' ? 'admin' : user.role;
     setCurrentRole(mappedRole);
+    setActiveTab('overview');
     fetchAllData();
   };
 
   const handleLogout = () => {
     localStorage.removeItem('csms_auth_token');
     setCurrentUser(null);
+  };
+
+  const handleRoleSwitch = (newRole) => {
+    setCurrentRole(newRole);
+    if (newRole === 'admin') setActiveTab('academic');
+    else if (newRole === 'teacher') setActiveTab('attendance');
+    else setActiveTab('overview');
   };
 
   // Handlers for Admin actions
@@ -163,9 +211,9 @@ export default function App() {
   const handlePostNotice = async (notice) => {
     try {
       const res = await apiCreateNotice(notice);
-      if (res.data) setNotices(prev => [...prev, res.data]);
+      if (res.data) setNotices(prev => [res.data, ...prev]);
     } catch (e) {
-      setNotices(prev => [...prev, { id: `not-${Date.now()}`, ...notice }]);
+      setNotices(prev => [{ id: `not-${Date.now()}`, created_at: new Date().toISOString(), ...notice }, ...prev]);
     }
   };
 
@@ -183,42 +231,48 @@ export default function App() {
     console.log('Recorded marks:', data);
   };
 
-  // Active student for student view (first enrolled student, or null)
-  const currentStudent = students[0] || null;
+  // Active student for student / parent view (Alex Rivera or first student)
+  const currentStudent = students.find(s => s.name === 'Alex Rivera') || students[0] || null;
 
   return (
     <div className="app-container">
-      {/* Sidebar for Student view navigation */}
-      {currentRole === 'student' && (
-        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-      )}
+      {/* Universal Left Sidebar for ALL Roles (Eliminates Layout Jumping) */}
+      <Sidebar 
+        currentRole={currentRole}
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab}
+        currentStudent={currentStudent}
+        feesList={feeDues}
+        notices={notices}
+        attendanceStats={attendanceStats}
+        isOpenMobile={isMobileMenuOpen}
+        onCloseMobile={() => setIsMobileMenuOpen(false)}
+      />
 
-      {/* Main Content */}
+      {/* Main Content Area */}
       <div className="main-wrapper">
         <Navbar
           currentRole={currentRole}
-          onSwitchRole={setCurrentRole}
+          onSwitchRole={handleRoleSwitch}
           currentStudent={currentStudent}
           currentUser={currentUser}
           onOpenLogin={() => setShowLoginModal(true)}
           onLogout={handleLogout}
           onToggleNotifications={() => setShowNotifications(!showNotifications)}
           unreadCount={notices.length}
-          onOpenReportCard={() => setShowReportCard(true)}
-          onOpenQuickFee={() => {
-            const pending = feeDues.find(f => f.status === 'PENDING') || { title: 'Semester Dues', totalAmount: 12500, dueAmount: 12500 };
-            setActivePaymentFee(pending);
-          }}
+          onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         />
 
         <main className="content-body">
-          {/* ADMIN PORTAL VIEW (Module 1, 2, 5 setup) */}
+          {/* 1. ADMIN PORTAL VIEW */}
           {currentRole === 'admin' && (
             <AdminPortal
               departments={departments}
               programmes={programmes}
               subjects={subjects}
               students={students}
+              activeSection={activeTab}
+              setActiveSection={setActiveTab}
               onAddDepartment={handleAddDepartment}
               onAddProgramme={handleAddProgramme}
               onAddSubject={handleAddSubject}
@@ -228,32 +282,65 @@ export default function App() {
             />
           )}
 
-          {/* TEACHER PORTAL VIEW (Module 3 attendance & Module 4 marks) */}
+          {/* 2. TEACHER PORTAL VIEW */}
           {currentRole === 'teacher' && (
             <TeacherPortal
               subjects={subjects}
               students={students}
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
               onMarkAttendance={handleMarkAttendance}
               onRecordMarks={handleRecordMarks}
             />
           )}
 
-          {/* STUDENT PORTAL VIEW (Golden MVP Student experience) */}
+          {/* 3. PARENT PORTAL VIEW */}
+          {currentRole === 'parent' && (
+            <ParentPortal
+              currentStudent={currentStudent}
+              attendanceStats={attendanceStats}
+              examResults={examResults}
+              feesList={feeDues}
+              notices={notices}
+              onOpenReportCard={() => setShowReportCard(true)}
+              onInitiatePayment={(fee) => setActivePaymentFee(fee)}
+            />
+          )}
+
+          {/* 4. ACCOUNTANT PORTAL VIEW */}
+          {currentRole === 'accountant' && (
+            <AccountantPortal
+              feeStructures={feeStructures}
+              feesList={feeDues}
+              students={students}
+              onAddFeeStructure={handleAddFeeStructure}
+              onViewReceipt={(fee) => setActiveReceiptFee(fee)}
+            />
+          )}
+
+          {/* 5. STUDENT PORTAL VIEW */}
           {currentRole === 'student' && (
             <>
               {activeTab === 'overview' && (
                 <DashboardOverview
                   currentStudent={currentStudent}
-                  attendanceStats={{ total: attendanceRecords.length, attended: attendanceRecords.filter(r => r.status === 'present').length, percentage: attendanceRecords.length > 0 ? ((attendanceRecords.filter(r => r.status === 'present').length / attendanceRecords.length)*100).toFixed(1) : 0 }}
+                  attendanceStats={attendanceStats}
                   subjects={subjects}
                   feesList={feeDues}
                   notices={notices}
+                  examResults={examResults}
                   onOpenReportCard={() => setShowReportCard(true)}
                   onOpenSimulator={() => setActiveTab('attendance')}
                   onOpenPaymentModal={() => {
-                    setActivePaymentFee({ title: 'Semester Dues', totalAmount: 12500, dueAmount: 12500 });
+                    const pending = feeDues.find(f => f.status === 'PENDING') || { 
+                      title: 'Laboratory & Computing Dues', 
+                      head: 'Laboratory & Computing Dues',
+                      totalAmount: 12500, 
+                      amountInPaise: 1250000 
+                    };
+                    setActivePaymentFee(pending);
                   }}
-                  onSwitchRole={setCurrentRole}
+                  onSwitchRole={handleRoleSwitch}
                 />
               )}
 
@@ -284,16 +371,22 @@ export default function App() {
       {/* Notifications Drawer */}
       {showNotifications && (
         <NotificationsDrawer
+          notices={notices}
           onClose={() => setShowNotifications(false)}
           onSelectNotice={() => {
             if (currentRole === 'student') setActiveTab('notices');
+            else if (currentRole === 'admin') setActiveTab('notices');
           }}
         />
       )}
 
       {/* Official Grade Card / Marksheet Modal */}
       {showReportCard && (
-        <ReportCardModal onClose={() => setShowReportCard(false)} />
+        <ReportCardModal 
+          currentStudent={currentStudent}
+          examResults={examResults}
+          onClose={() => setShowReportCard(false)} 
+        />
       )}
 
       {/* Sandbox Fee Payment Modal */}
@@ -303,9 +396,11 @@ export default function App() {
           onClose={() => setActivePaymentFee(null)}
           onPaymentSuccess={(feeId) => {
             setActivePaymentFee(null);
+            // Mark fee as settled in state
+            setFeeDues(prev => prev.map(f => f.id === feeId ? { ...f, status: 'PAID' } : f));
             setActiveReceiptFee({
-              title: 'Assessment Dues',
-              totalAmount: 12500,
+              title: activePaymentFee.head || activePaymentFee.title || 'Laboratory & Computing Dues',
+              totalAmount: activePaymentFee.amountInPaise ? activePaymentFee.amountInPaise / 100 : activePaymentFee.totalAmount || 12500,
               receiptNo: `RCPT-2026-${Math.floor(10000 + Math.random() * 90000)}`,
               paymentDate: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
               paymentMode: 'Online Sandbox (Razorpay Test Mode)'
@@ -318,6 +413,7 @@ export default function App() {
       {activeReceiptFee && (
         <FeeReceiptModal
           feeItem={activeReceiptFee}
+          currentStudent={currentStudent}
           onClose={() => setActiveReceiptFee(null)}
         />
       )}

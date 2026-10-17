@@ -12,7 +12,8 @@
     "db:migrate": "node server/scripts/run_migration.js",
     "test:services": "node server/scripts/verify_services.js",
     "test:e2e": "node server/tests/test_e2e_api.js",
-    "cron:attendance": "node server/scripts/cronAttendanceAlert.js"
+    "cron:attendance": "node server/scripts/cronAttendanceAlert.js",
+    "db:seed": "node server/scripts/seed_demo_data.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",

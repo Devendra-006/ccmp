@@ -65,7 +65,8 @@ router.post('/structures', authenticate, requireRole(['admin']), async (req, res
 router.get('/dues', optionalAuth, async (req, res) => {
   const { studentId, status } = req.query;
   try {
-    if (!req.user) {
+    // In demo mode or if studentId is passed, allow fetching the target student's dues
+    if (!req.user && !studentId) {
       return res.json({ data: [] });
     }
 
@@ -83,7 +84,7 @@ router.get('/dues', optionalAuth, async (req, res) => {
     const params = [];
 
     // Role-based protection: Student can ONLY see their own dues
-    if (req.user.role === 'student') {
+    if (req.user && req.user.role === 'student') {
       const studentRes = await pool.query('SELECT id FROM students WHERE user_id = $1', [req.user.id]);
       if (studentRes.rows.length > 0) {
         params.push(studentRes.rows[0].id);

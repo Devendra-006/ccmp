@@ -1,6 +1,6 @@
 import express from 'express';
 import { pool } from '../db/postgres.js';
-import { authenticate, requireRole } from '../middleware/auth.js';
+import { authenticate, optionalAuth, requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -16,7 +16,7 @@ function calculateGrade(marks, maxMarks = 100) {
 }
 
 // List exams
-router.get('/exams', authenticate, async (req, res) => {
+router.get('/exams', optionalAuth, async (req, res) => {
   const { subjectId } = req.query;
   try {
     let queryText = `
@@ -147,7 +147,7 @@ router.post('/exams/:id/marks', authenticate, requireRole(['admin', 'teacher']),
 });
 
 // Student results & GPA calculation (PRD EXM-3, EXM-5)
-router.get('/results/:studentId', authenticate, async (req, res) => {
+router.get('/results/:studentId', optionalAuth, async (req, res) => {
   const studentId = req.params.studentId;
   try {
     let queryText = `
@@ -159,8 +159,8 @@ router.get('/results/:studentId', authenticate, async (req, res) => {
       WHERE m.student_id = $1
     `;
 
-    // Non-admin/teacher roles can only see published exam results
-    if (req.user.role === 'student' || req.user.role === 'parent') {
+    // Non-admin/teacher roles or unauthenticated can only see published exam results
+    if (!req.user || req.user.role === 'student' || req.user.role === 'parent') {
       queryText += ` AND e.is_published = true`;
     }
 

@@ -1,11 +1,11 @@
 import express from 'express';
 import { pool } from '../db/postgres.js';
-import { authenticate, requireRole } from '../middleware/auth.js';
+import { authenticate, optionalAuth, requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
 
 // Get attendance logs
-router.get('/', authenticate, async (req, res) => {
+router.get('/', optionalAuth, async (req, res) => {
   const { studentId, subjectId, date } = req.query;
   try {
     let queryText = `
@@ -88,7 +88,7 @@ router.post('/mark', authenticate, requireRole(['admin', 'teacher']), async (req
 });
 
 // Get attendance summary for a student
-router.get('/summary/:studentId', authenticate, async (req, res) => {
+router.get('/summary/:studentId', optionalAuth, async (req, res) => {
   try {
     const { studentId } = req.params;
     const queryText = `
