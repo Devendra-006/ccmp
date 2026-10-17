@@ -84,6 +84,24 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ error: `Invalid role specified. Allowed: ${validRoles.join(', ')}` });
   }
 
+  // Security Fix (Issue 1.1): Restrict privileged role creation to authenticated admins only
+  if (role !== 'student') {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(403).json({ 
+        error: 'Forbidden: Public registration is restricted to student accounts. Admin authorization required for privileged roles.' 
+      });
+    }
+    try {
+      const decoded = jwt.verify(authHeader.split(' ')[1], JWT_SECRET);
+      if (decoded.role !== 'admin' && decoded.role !== 'super_admin') {
+        return res.status(403).json({ error: 'Forbidden: Only administrators can create staff or management accounts.' });
+      }
+    } catch (_) {
+      return res.status(401).json({ error: 'Unauthorized: Invalid or expired administrative token.' });
+    }
+  }
+
   try {
     const existing = await pool.query('SELECT id FROM users WHERE LOWER(email) = LOWER($1)', [email.trim()]);
     if (existing.rows.length > 0) {

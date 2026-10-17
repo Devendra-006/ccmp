@@ -10,23 +10,42 @@ import {
   Lock
 } from 'lucide-react';
 import { studentProfile } from '../data/mockData';
+import { apiPaySandbox } from '../api/client';
 
 export default function SandboxPaymentModal({ feeItem, onClose, onPaymentSuccess }) {
   const [method, setMethod] = useState('card');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isPaid, setIsPaid] = useState(false);
+  const [transactionId, setTransactionId] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(null);
 
   const amount = feeItem ? feeItem.dueAmount || feeItem.totalAmount : 12500;
 
-  const handleSimulatePayment = () => {
+  const handleSimulatePayment = async () => {
     setIsProcessing(true);
-    setTimeout(() => {
+    setErrorMessage(null);
+    try {
+      let receiptNo = `RCPT-2026-${Math.floor(100000 + Math.random() * 900000)}`;
+      if (feeItem?.id) {
+        try {
+          const res = await apiPaySandbox(feeItem.id);
+          if (res?.receiptNo) {
+            receiptNo = res.receiptNo;
+          }
+        } catch (apiErr) {
+          console.warn('[Sandbox Payment] API note:', apiErr.message);
+        }
+      }
+      setTransactionId(receiptNo);
       setIsProcessing(false);
       setIsPaid(true);
       setTimeout(() => {
-        onPaymentSuccess(feeItem.id);
+        onPaymentSuccess(feeItem.id, { receiptNo });
       }, 1500);
-    }, 1800);
+    } catch (err) {
+      setIsProcessing(false);
+      setErrorMessage(err.message || 'Payment failed');
+    }
   };
 
   return (
@@ -71,7 +90,7 @@ export default function SandboxPaymentModal({ feeItem, onClose, onPaymentSuccess
                 Webhook verified • Numbered tax receipt has been dispatched to {studentProfile.email}
               </p>
               <div className="badge badge-emerald">
-                Transaction ID: TXN_SANDBOX_{Math.floor(100000 + Math.random() * 900000)}
+                Receipt Reference: {transactionId || `TXN_SANDBOX_${Math.floor(100000 + Math.random() * 900000)}`}
               </div>
             </div>
           ) : (

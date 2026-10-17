@@ -17,11 +17,25 @@ function resolveRecipient(to) {
   return to;
 }
 
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 /**
  * Send automated fee payment confirmation & receipt email
  */
 export async function sendFeeReceiptEmail({ to, studentName, receiptNo, amount, feeHead, paidAt }) {
   if (!resendApiKey) return null;
+
+  const safeName = escapeHtml(studentName);
+  const safeHead = escapeHtml(feeHead);
+  const safeReceipt = escapeHtml(receiptNo);
 
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;">
@@ -30,9 +44,9 @@ export async function sendFeeReceiptEmail({ to, studentName, receiptNo, amount, 
         <p style="margin: 4px 0 0; color: #94a3b8; font-size: 13px;">Cloud-Based Student Management System</p>
       </div>
       <div style="padding: 24px 8px;">
-        <p style="font-size: 15px; color: #334155;">Dear <strong>${studentName}</strong>,</p>
+        <p style="font-size: 15px; color: #334155;">Dear <strong>${safeName}</strong>,</p>
         <p style="font-size: 14px; color: #64748b; line-height: 1.6;">
-          Your payment for <strong>${feeHead}</strong> has been successfully processed and verified.
+          Your payment for <strong>${safeHead}</strong> has been successfully processed and verified.
         </p>
         <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
           <table style="width: 100%; font-size: 14px; color: #334155;">
@@ -63,6 +77,9 @@ export async function sendFeeReceiptEmail({ to, studentName, receiptNo, amount, 
 export async function sendAttendanceWarningEmail({ to, studentName, attendancePercentage }) {
   if (!resendApiKey) return null;
 
+  const safeName = escapeHtml(studentName);
+  const safePct = escapeHtml(attendancePercentage);
+
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #fee2e2; border-radius: 12px; background: #ffffff;">
       <div style="background: #dc2626; padding: 20px; border-radius: 8px; text-align: center; color: #ffffff;">
@@ -70,10 +87,10 @@ export async function sendAttendanceWarningEmail({ to, studentName, attendancePe
         <p style="margin: 4px 0 0; color: #fecaca; font-size: 13px;">Academic Regulations Department</p>
       </div>
       <div style="padding: 24px 8px;">
-        <p style="font-size: 15px; color: #334155;">Dear Parent / Student <strong>${studentName}</strong>,</p>
+        <p style="font-size: 15px; color: #334155;">Dear Parent / Student <strong>${safeName}</strong>,</p>
         <p style="font-size: 14px; color: #64748b; line-height: 1.6;">
           Your current recorded attendance is 
-          <span style="color: #dc2626; font-weight: 700; font-size: 16px;">${attendancePercentage}%</span>, 
+          <span style="color: #dc2626; font-weight: 700; font-size: 16px;">${safePct}%</span>, 
           which is below the mandatory university threshold of <strong>75%</strong>.
         </p>
         <p style="font-size: 13px; color: #64748b;">
@@ -85,8 +102,8 @@ export async function sendAttendanceWarningEmail({ to, studentName, attendancePe
 
   return await resend.emails.send({
     from: defaultSender,
-    to: [to],
-    subject: `[Urgent] Attendance Shortfall Warning: ${studentName} (${attendancePercentage}%)`,
+    to: [resolveRecipient(to)],
+    subject: `[Urgent] Attendance Shortfall Warning: ${safeName} (${safePct}%)`,
     html
   });
 }
@@ -97,18 +114,23 @@ export async function sendAttendanceWarningEmail({ to, studentName, attendancePe
 export async function sendWelcomeCredentialsEmail({ to, name, email, tempPassword, role }) {
   if (!resendApiKey) return null;
 
+  const safeName = escapeHtml(name);
+  const safeEmail = escapeHtml(email);
+  const safeRole = escapeHtml(role);
+  const safePass = escapeHtml(tempPassword);
+
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;">
       <div style="background: #4f46e5; padding: 20px; border-radius: 8px; text-align: center; color: #ffffff;">
         <h2 style="margin: 0; font-size: 20px;">Welcome to Campus Portal</h2>
-        <p style="margin: 4px 0 0; color: #c7d2fe; font-size: 13px;">Role: ${role.toUpperCase()}</p>
+        <p style="margin: 4px 0 0; color: #c7d2fe; font-size: 13px;">Role: ${safeRole.toUpperCase()}</p>
       </div>
       <div style="padding: 24px 8px;">
-        <p style="font-size: 15px; color: #334155;">Hello <strong>${name}</strong>,</p>
+        <p style="font-size: 15px; color: #334155;">Hello <strong>${safeName}</strong>,</p>
         <p style="font-size: 14px; color: #64748b;">Your account has been created on the Student Management System. Here are your credentials:</p>
         <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
-          <p style="margin: 4px 0; font-size: 14px;"><strong>Email:</strong> ${email}</p>
-          <p style="margin: 4px 0; font-size: 14px;"><strong>Temporary Password:</strong> <code style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px;">${tempPassword}</code></p>
+          <p style="margin: 4px 0; font-size: 14px;"><strong>Email:</strong> ${safeEmail}</p>
+          <p style="margin: 4px 0; font-size: 14px;"><strong>Temporary Password:</strong> <code style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px;">${safePass}</code></p>
         </div>
         <p style="font-size: 13px; color: #64748b;">Please log in and update your password on first sign-in.</p>
       </div>
@@ -117,7 +139,7 @@ export async function sendWelcomeCredentialsEmail({ to, name, email, tempPasswor
 
   return await resend.emails.send({
     from: defaultSender,
-    to: [to],
+    to: [resolveRecipient(to)],
     subject: `Your Campus Portal Account Credentials`,
     html
   });

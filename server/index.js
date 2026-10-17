@@ -18,6 +18,9 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Security (Issue 1.10): Trust reverse proxy (nginx/Render/AWS ALB) for accurate client IP rate limiting
+app.set('trust proxy', 1);
+
 // Security: Helmet for HTTP header protection
 app.use(helmet({ crossOriginResourcePolicy: false }));
 

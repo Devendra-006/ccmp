@@ -36,7 +36,9 @@ import {
   apiMarkAttendance,
   apiGetAttendanceSummary,
   apiGetResults,
-  apiEnterMarks
+  apiEnterMarks,
+  apiCreateExam,
+  apiPublishExam
 } from './api/client';
 import './App.css';
 
@@ -157,64 +159,44 @@ export default function App() {
 
   const handleRoleSwitch = (newRole) => {
     setCurrentRole(newRole);
-    if (newRole === 'admin') setActiveTab('academic');
-    else if (newRole === 'teacher') setActiveTab('attendance');
-    else setActiveTab('overview');
+    setActiveTab('overview');
   };
 
   // Handlers for Admin actions
   const handleAddDepartment = async (dept) => {
-    try {
-      const res = await apiCreateDepartment(dept);
-      if (res.data) setDepartments(prev => [...prev, res.data]);
-    } catch (e) {
-      setDepartments(prev => [...prev, { id: `dept-${Date.now()}`, ...dept }]);
-    }
+    const res = await apiCreateDepartment(dept);
+    if (res?.data) setDepartments(prev => [...prev, res.data]);
+    return res;
   };
 
   const handleAddProgramme = async (prog) => {
-    try {
-      const res = await apiCreateProgramme(prog);
-      if (res.data) setProgrammes(prev => [...prev, res.data]);
-    } catch (e) {
-      setProgrammes(prev => [...prev, { id: `prog-${Date.now()}`, ...prog }]);
-    }
+    const res = await apiCreateProgramme(prog);
+    if (res?.data) setProgrammes(prev => [...prev, res.data]);
+    return res;
   };
 
   const handleAddSubject = async (sub) => {
-    try {
-      const res = await apiCreateSubject(sub);
-      if (res.data) setSubjects(prev => [...prev, res.data]);
-    } catch (e) {
-      setSubjects(prev => [...prev, { id: `sub-${Date.now()}`, ...sub }]);
-    }
+    const res = await apiCreateSubject(sub);
+    if (res?.data) setSubjects(prev => [...prev, res.data]);
+    return res;
   };
 
   const handleEnrollStudent = async (stu) => {
-    try {
-      const res = await apiEnrollStudent(stu);
-      if (res.data) setStudents(prev => [...prev, res.data]);
-    } catch (e) {
-      setStudents(prev => [...prev, { id: `std-${Date.now()}`, ...stu }]);
-    }
+    const res = await apiEnrollStudent(stu);
+    if (res?.data) setStudents(prev => [...prev, res.data]);
+    return res;
   };
 
   const handleAddFeeStructure = async (fee) => {
-    try {
-      const res = await apiCreateFeeStructure(fee);
-      if (res.data) setFeeStructures(prev => [...prev, res.data]);
-    } catch (e) {
-      setFeeStructures(prev => [...prev, { id: `fee-${Date.now()}`, ...fee }]);
-    }
+    const res = await apiCreateFeeStructure(fee);
+    if (res?.data) setFeeStructures(prev => [...prev, res.data]);
+    return res;
   };
 
   const handlePostNotice = async (notice) => {
-    try {
-      const res = await apiCreateNotice(notice);
-      if (res.data) setNotices(prev => [res.data, ...prev]);
-    } catch (e) {
-      setNotices(prev => [{ id: `not-${Date.now()}`, created_at: new Date().toISOString(), ...notice }, ...prev]);
-    }
+    const res = await apiCreateNotice(notice);
+    if (res?.data) setNotices(prev => [res.data, ...prev]);
+    return res;
   };
 
   // Handlers for Teacher actions
@@ -228,7 +210,32 @@ export default function App() {
   };
 
   const handleRecordMarks = async (data) => {
-    console.log('Recorded marks:', data);
+    try {
+      const examPayload = {
+        subjectId: data.subjectId,
+        name: data.name || 'Mid-Term Assessment 2026',
+        type: data.type || 'mid_term',
+        date: data.date || new Date().toISOString().split('T')[0],
+        maxMarks: data.maxMarks || 50,
+        weightage: 100
+      };
+      const examRes = await apiCreateExam(examPayload);
+      const createdExam = examRes?.data;
+      if (createdExam?.id && data.marksList?.length) {
+        await apiEnterMarks(createdExam.id, data.marksList);
+        try {
+          await apiPublishExam(createdExam.id);
+        } catch (_) {}
+      }
+
+      // Re-fetch student results so report card updates immediately
+      if (currentStudent?.id) {
+        const resRes = await apiGetResults(currentStudent.id);
+        if (resRes?.data) setExamResults(resRes.data);
+      }
+    } catch (err) {
+      console.warn('Teacher marks recording note:', err.message);
+    }
   };
 
   // Active student for student / parent view (Alex Rivera or first student)
@@ -302,6 +309,8 @@ export default function App() {
               examResults={examResults}
               feesList={feeDues}
               notices={notices}
+              activeSection={activeTab}
+              setActiveSection={setActiveTab}
               onOpenReportCard={() => setShowReportCard(true)}
               onInitiatePayment={(fee) => setActivePaymentFee(fee)}
             />
@@ -313,6 +322,8 @@ export default function App() {
               feeStructures={feeStructures}
               feesList={feeDues}
               students={students}
+              activeSection={activeTab}
+              setActiveSection={setActiveTab}
               onAddFeeStructure={handleAddFeeStructure}
               onViewReceipt={(fee) => setActiveReceiptFee(fee)}
             />
@@ -394,17 +405,23 @@ export default function App() {
         <SandboxPaymentModal
           feeItem={activePaymentFee}
           onClose={() => setActivePaymentFee(null)}
-          onPaymentSuccess={(feeId) => {
+          onPaymentSuccess={(feeId, paymentData) => {
             setActivePaymentFee(null);
             // Mark fee as settled in state
             setFeeDues(prev => prev.map(f => f.id === feeId ? { ...f, status: 'PAID' } : f));
             setActiveReceiptFee({
               title: activePaymentFee.head || activePaymentFee.title || 'Laboratory & Computing Dues',
               totalAmount: activePaymentFee.amountInPaise ? activePaymentFee.amountInPaise / 100 : activePaymentFee.totalAmount || 12500,
-              receiptNo: `RCPT-2026-${Math.floor(10000 + Math.random() * 90000)}`,
+              receiptNo: paymentData?.receiptNo || `RCPT-2026-${Math.floor(10000 + Math.random() * 90000)}`,
               paymentDate: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
               paymentMode: 'Online Sandbox (Razorpay Test Mode)'
             });
+            // Re-fetch backend dues to verify persistence across page navigation/refreshes
+            if (currentStudent?.id) {
+              apiGetFeeDues({ studentId: currentStudent.id })
+                .then(res => { if (res?.data) setFeeDues(res.data); })
+                .catch(() => {});
+            }
           }}
         />
       )}

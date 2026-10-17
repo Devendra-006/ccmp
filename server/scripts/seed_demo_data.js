@@ -207,7 +207,26 @@ async function seedData() {
     }
     console.log(`✓ ${attCount} Attendance ledger logs seeded`);
 
+    const parentPass = await bcrypt.hash('Parent@123', salt);
+    const accountantPass = await bcrypt.hash('Accountant@123', salt);
+
+    // 1b. Ensure Parent and Accountant users exist
+    await pool.query(`
+      INSERT INTO users (email, password_hash, role, status)
+      VALUES 
+        ('parent@campus.edu', $1, 'parent', 'active'),
+        ('accountant@campus.edu', $2, 'accountant', 'active')
+      ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash;
+    `, [parentPass, accountantPass]);
+
     // 8. Exams & Marks (Mid-Term 2026)
+    const alexSubjectMarks = {
+      'CS401': 46.5, // DSA: 93% (O)
+      'CS402': 43.0, // DBMS: 86% (A+)
+      'CS403': 39.5, // OS: 79% (A)
+      'CS404': 44.0  // Networks: 88% (A+)
+    };
+
     for (const sub of cseSubjects.slice(0, 4)) {
       const exRes = await pool.query(`
         INSERT INTO exams (subject_id, name, type, date, max_marks, weightage, is_published)
@@ -221,10 +240,10 @@ async function seedData() {
       let mIdx = 1;
 
       for (const stu of students) {
-        let marks = 42.5; // Alex gets 42.5/50 (85% -> A+)
-        if (stu.id !== primaryStudent.id) {
-          marks = Math.floor(25 + Math.random() * 23);
-        }
+        let marks = stu.id === primaryStudent.id 
+          ? (alexSubjectMarks[sub.code] || 42.5) 
+          : Math.floor(25 + Math.random() * 23);
+
         const pct = (marks / 50) * 100;
         const grade = pct >= 90 ? 'O' : pct >= 80 ? 'A+' : pct >= 70 ? 'A' : pct >= 60 ? 'B+' : 'B';
         const gp = pct >= 90 ? 10.0 : pct >= 80 ? 9.0 : pct >= 70 ? 8.0 : pct >= 60 ? 7.0 : 6.0;
@@ -241,9 +260,13 @@ async function seedData() {
         DO UPDATE SET marks_obtained = EXCLUDED.marks_obtained, grade = EXCLUDED.grade, grade_point = EXCLUDED.grade_point;
       `, markParams);
     }
-    console.log('✓ Examinations and Gradebook marks seeded');
+    console.log('✓ Diverse examinations and Gradebook marks seeded');
 
-    // 9. Fee Structures & Dues
+    // 9. Fee Structures & Complete 20-Student Ledger
+    await pool.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_fee_dues_unique ON fee_dues (student_id, fee_structure_id);
+    `);
+
     const fs1 = await pool.query(`
       INSERT INTO fee_structures (programme_id, semester, head, amount_in_paise, due_date)
       VALUES ($1, 4, 'Semester 4 Tuition Fee', 6500000, '2026-04-30')
@@ -256,24 +279,48 @@ async function seedData() {
       RETURNING id;
     `, [progs['BTECH_CSE']]);
 
-    // For Alex Rivera: Tuition is PAID with receipt, Lab Dues is PENDING
-    const due1 = await pool.query(`
-      INSERT INTO fee_dues (student_id, fee_structure_id, amount_in_paise, status)
-      VALUES ($1, $2, 6500000, 'PAID')
-      RETURNING id;
-    `, [primaryStudent.id, fs1.rows[0].id]);
+    // Seed dues across ALL 20 students so Accountant Ledger is 100% full and authentic
+    let seededDuesCount = 0;
+    for (let idx = 0; idx < students.length; idx++) {
+      const stu = students[idx];
+      // Alex Rivera (idx === 0): Tuition is PAID, Lab is PENDING
+      const tuitionPaid = idx === 0 ? true : idx % 2 === 0;
+      const labPaid = idx === 0 ? false : idx % 3 === 0;
 
-    await pool.query(`
-      INSERT INTO payments (due_id, amount_in_paise, mode, gateway_ref, receipt_no, paid_at)
-      VALUES ($1, 6500000, 'upi', 'pay_rzp_live_849102', 'RCP-2026-849102', '2026-03-01T10:30:00Z');
-    `, [due1.rows[0].id]);
+      const due1 = await pool.query(`
+        INSERT INTO fee_dues (student_id, fee_structure_id, amount_in_paise, status)
+        VALUES ($1, $2, 6500000, $3)
+        ON CONFLICT (student_id, fee_structure_id) DO UPDATE SET status = EXCLUDED.status
+        RETURNING id;
+      `, [stu.id, fs1.rows[0].id, tuitionPaid ? 'PAID' : 'PENDING']);
+      seededDuesCount++;
 
-    await pool.query(`
-      INSERT INTO fee_dues (student_id, fee_structure_id, amount_in_paise, status)
-      VALUES ($1, $2, 1250000, 'PENDING');
-    `, [primaryStudent.id, fs2.rows[0].id]);
+      if (tuitionPaid) {
+        await pool.query(`
+          INSERT INTO payments (due_id, amount_in_paise, mode, gateway_ref, receipt_no, paid_at)
+          VALUES ($1, 6500000, 'upi', $2, $3, '2026-03-01T10:30:00Z')
+          ON CONFLICT (receipt_no) DO NOTHING
+        `, [due1.rows[0].id, `pay_rzp_live_${849100 + idx}`, `RCP-2026-${849100 + idx}`]);
+      }
 
-    console.log('✓ Fee structures, paid receipts, and pending dues seeded');
+      const due2 = await pool.query(`
+        INSERT INTO fee_dues (student_id, fee_structure_id, amount_in_paise, status)
+        VALUES ($1, $2, 1250000, $3)
+        ON CONFLICT (student_id, fee_structure_id) DO UPDATE SET status = EXCLUDED.status
+        RETURNING id;
+      `, [stu.id, fs2.rows[0].id, labPaid ? 'PAID' : 'PENDING']);
+      seededDuesCount++;
+
+      if (labPaid) {
+        await pool.query(`
+          INSERT INTO payments (due_id, amount_in_paise, mode, gateway_ref, receipt_no, paid_at)
+          VALUES ($1, 1250000, 'upi', $2, $3, '2026-03-05T14:20:00Z')
+          ON CONFLICT (receipt_no) DO NOTHING
+        `, [due2.rows[0].id, `pay_rzp_live_${949100 + idx}`, `RCP-2026-${949100 + idx}`]);
+      }
+    }
+
+    console.log(`✓ ${seededDuesCount} Fee ledger dues & receipts seeded across all 20 students`);
 
     // 10. Notices (3 Campus Circulars)
     const noticesList = [

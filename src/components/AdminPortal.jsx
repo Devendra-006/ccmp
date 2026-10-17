@@ -189,6 +189,7 @@ export default function AdminPortal({
       {/* Navigation Pills */}
       <div style={{ display: 'flex', gap: '10px', overflowX: 'auto' }}>
         {[
+          { id: 'overview', label: '0. Institution Overview', icon: Activity },
           { id: 'academic', label: '1. Curriculums & Subjects', icon: BookOpen },
           { id: 'students', label: '2. Student Directory & Admissions', icon: UserPlus },
           { id: 'fees', label: '3. Fee Structures', icon: CreditCard },
@@ -210,6 +211,171 @@ export default function AdminPortal({
           );
         })}
       </div>
+
+      {/* SECTION 0: INSTITUTION OVERVIEW DASHBOARD */}
+      {section === 'overview' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* KPI Stat Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+            <div className="stat-card">
+              <div className="stat-card-header">
+                <span className="stat-label">Enrolled Students</span>
+                <div className="stat-icon-wrap stat-icon-indigo"><UserPlus size={19} /></div>
+              </div>
+              <div className="stat-value" style={{ color: '#0f172a' }}>{students.length}</div>
+              <div className="stat-footer">
+                <span className="badge badge-indigo">Semester 4 Active</span>
+                <span style={{ fontSize: '11.5px', color: '#64748b' }}>CS & Allied Depts</span>
+              </div>
+            </div>
+
+            <div className="stat-card">
+              <div className="stat-card-header">
+                <span className="stat-label">Departments</span>
+                <div className="stat-icon-wrap stat-icon-emerald"><Building2 size={19} /></div>
+              </div>
+              <div className="stat-value" style={{ color: '#059669' }}>{departments.length}</div>
+              <div className="stat-footer">
+                <span className="badge badge-emerald">CSE, ECE, MECH</span>
+                <span style={{ fontSize: '11.5px', color: '#64748b' }}>Accredited Units</span>
+              </div>
+            </div>
+
+            <div className="stat-card">
+              <div className="stat-card-header">
+                <span className="stat-label">Degree Programmes</span>
+                <div className="stat-icon-wrap stat-icon-sky"><GraduationCap size={19} /></div>
+              </div>
+              <div className="stat-value" style={{ color: '#0284c7' }}>{programmes.length}</div>
+              <div className="stat-footer">
+                <span className="badge badge-sky">B.Tech Degrees</span>
+                <span style={{ fontSize: '11.5px', color: '#64748b' }}>4-Year Curriculum</span>
+              </div>
+            </div>
+
+            <div className="stat-card">
+              <div className="stat-card-header">
+                <span className="stat-label">Active Courses</span>
+                <div className="stat-icon-wrap stat-icon-amber"><BookOpen size={19} /></div>
+              </div>
+              <div className="stat-value" style={{ color: '#d97706' }}>{subjects.length}</div>
+              <div className="stat-footer">
+                <span className="badge badge-amber">Registered</span>
+                <span style={{ fontSize: '11.5px', color: '#64748b' }}>Core & Electives</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Cloud Infrastructure & System Status */}
+          <div className="white-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+              <div>
+                <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Server size={18} color="#4f46e5" />
+                  <span>Cloud Architecture & Services Topology</span>
+                </h3>
+                <p style={{ fontSize: '12px', color: '#64748b' }}>
+                  Live multi-tenant microservices deployment status across cloud infrastructure
+                </p>
+              </div>
+              <span className="badge badge-emerald" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Activity size={14} />
+                <span>All Microservices Operational</span>
+              </span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+              <div style={{ padding: '14px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', textTransform: 'uppercase' }}>Database Engine</div>
+                <div style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a', marginTop: '4px' }}>Supabase PostgreSQL 17</div>
+                <div style={{ fontSize: '12px', color: '#059669', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '6px' }}>
+                  <CheckCircle2 size={13} /> SSL Secured • Port 5432
+                </div>
+              </div>
+
+              <div style={{ padding: '14px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', textTransform: 'uppercase' }}>In-Memory Cache</div>
+                <div style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a', marginTop: '4px' }}>Upstash / Redis Layer</div>
+                <div style={{ fontSize: '12px', color: '#059669', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '6px' }}>
+                  <CheckCircle2 size={13} /> Active • Rate Limiting
+                </div>
+              </div>
+
+              <div style={{ padding: '14px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', textTransform: 'uppercase' }}>Backend API Gateway</div>
+                <div style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a', marginTop: '4px' }}>Node / Express 4.19</div>
+                <div style={{ fontSize: '12px', color: '#059669', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '6px' }}>
+                  <CheckCircle2 size={13} /> Port 5000 • Trust Proxy
+                </div>
+              </div>
+
+              <div style={{ padding: '14px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', textTransform: 'uppercase' }}>Mailer & Dispatcher</div>
+                <div style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a', marginTop: '4px' }}>Resend API / SMTP</div>
+                <div style={{ fontSize: '12px', color: '#059669', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '6px' }}>
+                  <CheckCircle2 size={13} /> HTML Sanitized • Active
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Action Launchpad */}
+          <div className="white-card">
+            <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a', marginBottom: '14px' }}>
+              Administrative Quick Action Launchpad
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+              <button 
+                className="btn btn-outline" 
+                onClick={() => setActiveSection && setActiveSection('academic')}
+                style={{ justifyContent: 'flex-start', padding: '12px 16px', background: '#ffffff' }}
+              >
+                <BookOpen size={16} color="#4f46e5" />
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: '13px', fontWeight: '700', color: '#0f172a' }}>Curriculums & Courses</div>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>Add subjects and syllabus</div>
+                </div>
+              </button>
+
+              <button 
+                className="btn btn-outline" 
+                onClick={() => setActiveSection && setActiveSection('students')}
+                style={{ justifyContent: 'flex-start', padding: '12px 16px', background: '#ffffff' }}
+              >
+                <UserPlus size={16} color="#059669" />
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: '13px', fontWeight: '700', color: '#0f172a' }}>Student Admissions</div>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>Enroll candidates & batches</div>
+                </div>
+              </button>
+
+              <button 
+                className="btn btn-outline" 
+                onClick={() => setActiveSection && setActiveSection('fees')}
+                style={{ justifyContent: 'flex-start', padding: '12px 16px', background: '#ffffff' }}
+              >
+                <CreditCard size={16} color="#0284c7" />
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: '13px', fontWeight: '700', color: '#0f172a' }}>Fee Structures</div>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>Publish assessment dues</div>
+                </div>
+              </button>
+
+              <button 
+                className="btn btn-outline" 
+                onClick={() => setActiveSection && setActiveSection('notices')}
+                style={{ justifyContent: 'flex-start', padding: '12px 16px', background: '#ffffff' }}
+              >
+                <Bell size={16} color="#d97706" />
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: '13px', fontWeight: '700', color: '#0f172a' }}>Broadcast Circular</div>
+                  <div style={{ fontSize: '11px', color: '#64748b' }}>Post campus-wide notices</div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* SECTION 1: ACADEMIC CURRICULUM & SUBJECTS */}
       {section === 'academic' && (

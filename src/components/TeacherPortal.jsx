@@ -12,7 +12,8 @@ import {
   X,
   Clock,
   Sparkles,
-  AlertTriangle
+  AlertTriangle,
+  LayoutDashboard
 } from 'lucide-react';
 
 export default function TeacherPortal({
@@ -20,10 +21,10 @@ export default function TeacherPortal({
   students = [],
   onMarkAttendance,
   onRecordMarks,
-  activeTab = 'attendance',
+  activeTab = 'overview',
   setActiveTab
 }) {
-  const currentTab = activeTab || 'attendance';
+  const currentTab = activeTab || 'overview';
   const [selectedSubjectId, setSelectedSubjectId] = useState(subjects[0]?.id || '');
   const [period, setPeriod] = useState('01');
   const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0]);
@@ -159,7 +160,15 @@ export default function TeacherPortal({
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '10px' }}>
+      <div style={{ display: 'flex', gap: '10px', overflowX: 'auto' }}>
+        <button
+          className={`btn btn-sm ${currentTab === 'overview' ? 'btn-primary' : 'btn-outline'}`}
+          onClick={() => setActiveTab && setActiveTab('overview')}
+          style={{ background: currentTab === 'overview' ? '#0f172a' : '' }}
+        >
+          <LayoutDashboard size={14} />
+          <span>Faculty Overview</span>
+        </button>
         <button
           className={`btn btn-sm ${currentTab === 'attendance' ? 'btn-primary' : 'btn-outline'}`}
           onClick={() => setActiveTab && setActiveTab('attendance')}
@@ -176,7 +185,201 @@ export default function TeacherPortal({
           <Award size={14} />
           <span>Marks Entry Register</span>
         </button>
+        <button
+          className={`btn btn-sm ${currentTab === 'roster' ? 'btn-primary' : 'btn-outline'}`}
+          onClick={() => setActiveTab && setActiveTab('roster')}
+          style={{ background: currentTab === 'roster' ? '#0f172a' : '' }}
+        >
+          <Users size={14} />
+          <span>Student Roster ({students.length})</span>
+        </button>
       </div>
+
+      {/* TAB 0: FACULTY OVERVIEW */}
+      {currentTab === 'overview' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Quick Metrics */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+            <div className="stat-card">
+              <div className="stat-card-header">
+                <span className="stat-label">Assigned Students</span>
+                <div className="stat-icon-wrap stat-icon-indigo"><Users size={19} /></div>
+              </div>
+              <div className="stat-value" style={{ color: '#0f172a' }}>{students.length}</div>
+              <div className="stat-footer">
+                <span className="badge badge-indigo">Class Section CSE-A</span>
+                <span style={{ fontSize: '11.5px', color: '#64748b' }}>Semester 4</span>
+              </div>
+            </div>
+
+            <div className="stat-card">
+              <div className="stat-card-header">
+                <span className="stat-label">Section Attendance Avg</span>
+                <div className="stat-icon-wrap stat-icon-emerald"><CheckCircle2 size={19} /></div>
+              </div>
+              <div className="stat-value" style={{ color: '#059669' }}>93.8%</div>
+              <div className="stat-footer">
+                <span className="badge badge-emerald">Optimal Range</span>
+                <span style={{ fontSize: '11.5px', color: '#64748b' }}>Regulatory Target &ge;75%</span>
+              </div>
+            </div>
+
+            <div className="stat-card">
+              <div className="stat-card-header">
+                <span className="stat-label">Courses Instructed</span>
+                <div className="stat-icon-wrap stat-icon-sky"><BookOpen size={19} /></div>
+              </div>
+              <div className="stat-value" style={{ color: '#0284c7' }}>{subjects.length}</div>
+              <div className="stat-footer">
+                <span className="badge badge-sky">Curriculum Active</span>
+                <span style={{ fontSize: '11.5px', color: '#64748b' }}>Core Technical Labs</span>
+              </div>
+            </div>
+
+            <div className="stat-card">
+              <div className="stat-card-header">
+                <span className="stat-label">Internal Assessments</span>
+                <div className="stat-icon-wrap stat-icon-amber"><Award size={19} /></div>
+              </div>
+              <div className="stat-value" style={{ color: '#d97706' }}>Published</div>
+              <div className="stat-footer">
+                <span className="badge badge-amber">Mid-Term 2026</span>
+                <span style={{ fontSize: '11.5px', color: '#64748b' }}>Transcript Ledger Updated</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Today's Teaching Schedule & Low Attendance Watchlist */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '20px' }}>
+            {/* Teaching Schedule */}
+            <div className="white-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <div>
+                  <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Clock size={16} color="#4f46e5" />
+                    <span>Today's Lecture & Lab Slots</span>
+                  </h3>
+                  <p style={{ fontSize: '12px', color: '#64748b' }}>Daily academic timetable and room allocations</p>
+                </div>
+                <button 
+                  className="btn btn-primary btn-sm"
+                  onClick={() => setActiveTab && setActiveTab('attendance')}
+                >
+                  <CalendarCheck size={14} />
+                  <span>Take Attendance</span>
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {[
+                  { code: 'CS401', name: 'Data Structures & Algorithms', time: '09:00 - 10:00 AM', room: 'Lecture Hall 302', section: 'CSE-A', period: 'Period 1' },
+                  { code: 'CS402', name: 'Database Management Systems', time: '10:00 - 11:00 AM', room: 'Software Computing Lab 1', section: 'CSE-A', period: 'Period 2' },
+                  { code: 'CS403', name: 'Operating Systems Architecture', time: '01:00 - 02:00 PM', room: 'Lecture Hall 304', section: 'CSE-B', period: 'Period 4' }
+                ].map((slot, idx) => (
+                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span className="badge badge-indigo" style={{ fontSize: '10.5px' }}>{slot.period}</span>
+                        <span style={{ fontSize: '13.5px', fontWeight: '700', color: '#0f172a' }}>{slot.name}</span>
+                      </div>
+                      <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px' }}>
+                        {slot.code} • {slot.section} • {slot.room}
+                      </div>
+                    </div>
+                    <span style={{ fontSize: '12px', fontWeight: '600', color: '#4f46e5' }}>{slot.time}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Attendance Risk Watchlist */}
+            <div className="white-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <div>
+                  <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <AlertTriangle size={16} color="#e11d48" />
+                    <span>Attendance Warning Watchlist</span>
+                  </h3>
+                  <p style={{ fontSize: '12px', color: '#64748b' }}>Students approaching the 75% regulatory barrier</p>
+                </div>
+                <span className="badge badge-rose">2 Students Flagged</span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ padding: '12px 14px', background: '#fff1f2', borderRadius: '8px', border: '1px solid #fecdd3', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: '700', color: '#9f1239' }}>David Miller (22CS004)</div>
+                    <div style={{ fontSize: '11px', color: '#e11d48' }}>Current Attendance: 70.0% • 9 absences recorded</div>
+                  </div>
+                  <span className="badge badge-rose" style={{ fontSize: '11px' }}>Notice Sent</span>
+                </div>
+
+                <div style={{ padding: '12px 14px', background: '#fff1f2', borderRadius: '8px', border: '1px solid #fecdd3', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: '700', color: '#9f1239' }}>Grace Lee (22CS007)</div>
+                    <div style={{ fontSize: '11px', color: '#e11d48' }}>Current Attendance: 68.3% • 10 absences recorded</div>
+                  </div>
+                  <span className="badge badge-rose" style={{ fontSize: '11px' }}>Notice Sent</span>
+                </div>
+
+                <div style={{ padding: '12px 14px', background: '#ecfdf5', borderRadius: '8px', border: '1px solid #a7f3d0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: '700', color: '#065f46' }}>Alex Rivera (22CS001) - Top Performer</div>
+                    <div style={{ fontSize: '11px', color: '#059669' }}>Current Attendance: 97.0% • 29 of 30 classes attended</div>
+                  </div>
+                  <span className="badge badge-emerald" style={{ fontSize: '11px' }}>Compliant</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB: ROSTER */}
+      {currentTab === 'roster' && (
+        <div className="white-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div>
+              <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a' }}>
+                Class Section CSE-A Master Roster
+              </h3>
+              <p style={{ fontSize: '12px', color: '#64748b' }}>
+                Enrolled students in 4th Semester Computer Science & Engineering
+              </p>
+            </div>
+            <span className="badge badge-indigo">{students.length} Students Active</span>
+          </div>
+
+          <div className="clean-table-container">
+            <table className="clean-table">
+              <thead>
+                <tr>
+                  <th>Roll No</th>
+                  <th>Student Name</th>
+                  <th>Enrolment ID</th>
+                  <th>Institutional Email</th>
+                  <th>Section</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {students.map(s => (
+                  <tr key={s.id}>
+                    <td style={{ fontWeight: '700', color: '#4f46e5' }}>{s.rollNo}</td>
+                    <td style={{ fontWeight: '600', color: '#0f172a' }}>{s.name}</td>
+                    <td style={{ fontSize: '12px', color: '#64748b' }}>{s.enrolmentNo}</td>
+                    <td style={{ fontSize: '12px', color: '#64748b' }}>{s.email}</td>
+                    <td>{s.section || 'A'}</td>
+                    <td>
+                      <span className="badge badge-emerald">Enrolled</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* TAB 1: ATTENDANCE */}
       {currentTab === 'attendance' && (

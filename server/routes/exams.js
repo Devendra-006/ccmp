@@ -80,8 +80,8 @@ router.post('/exams', authenticate, requireRole(['admin', 'teacher']), async (re
   }
 });
 
-// Publish exam results (Admin only - PRD EXM-4)
-router.post('/exams/:id/publish', authenticate, requireRole(['admin']), async (req, res) => {
+// Publish exam results (Admin or Teacher)
+router.post('/exams/:id/publish', authenticate, requireRole(['admin', 'teacher']), async (req, res) => {
   try {
     const result = await pool.query(
       'UPDATE exams SET is_published = true WHERE id = $1 RETURNING *',

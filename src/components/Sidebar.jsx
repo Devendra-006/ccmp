@@ -49,6 +49,7 @@ export default function Sidebar({
     switch (currentRole) {
       case 'admin':
         return [
+          { id: 'overview', label: '0. Institution Overview', icon: LayoutDashboard },
           { id: 'academic', label: '1. Curriculums & Subjects', icon: BookOpen },
           { id: 'students', label: '2. Student Directory', icon: Users },
           { id: 'fees', label: '3. Fee Structures', icon: CreditCard },
@@ -58,6 +59,7 @@ export default function Sidebar({
 
       case 'teacher':
         return [
+          { id: 'overview', label: 'Faculty Overview', icon: LayoutDashboard },
           { id: 'attendance', label: 'Daily Attendance Register', icon: CalendarCheck },
           { id: 'marks', label: 'Marks & Gradebook Entry', icon: Award },
           { id: 'roster', label: 'Class Student Rosters', icon: Users },

@@ -11,7 +11,8 @@ import {
   ArrowUpRight,
   TrendingUp,
   AlertCircle,
-  FileSpreadsheet
+  FileSpreadsheet,
+  LayoutDashboard
 } from 'lucide-react';
 
 export default function AccountantPortal({
@@ -19,13 +20,17 @@ export default function AccountantPortal({
   feesList = [],
   students = [],
   onAddFeeStructure,
-  onViewReceipt
+  onViewReceipt,
+  activeSection = 'overview',
+  setActiveSection
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('ALL');
-  const [activeTab, setActiveTab] = useState('dues'); // 'dues', 'structures'
   const [showAddModal, setShowAddModal] = useState(false);
   const [newFee, setNewFee] = useState({ head: '', amount: '', dueDate: '', semester: 4 });
+
+  const currentTab = activeSection || 'overview';
+  const setTab = setActiveSection || (() => {});
 
   // Filter dues
   const filteredDues = feesList.filter(f => {
@@ -78,71 +83,177 @@ export default function AccountantPortal({
         </div>
       </div>
 
-      {/* Financial Metrics Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
-        <div className="stat-card">
-          <div className="stat-card-header">
-            <span className="stat-label">Total Invoiced (Sem 4)</span>
-            <div className="stat-icon-wrap stat-icon-indigo"><TrendingUp size={19} /></div>
-          </div>
-          <div className="stat-value" style={{ color: '#0f172a' }}>
-            ₹ {totalInvoiced.toLocaleString('en-IN')}
-          </div>
-          <div className="stat-footer">
-            <span>{feesList.length} Invoiced Ledger Entries</span>
-            <span className="badge badge-indigo">100% Audited</span>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-card-header">
-            <span className="stat-label">Total Collections Realized</span>
-            <div className="stat-icon-wrap stat-icon-emerald"><CheckCircle2 size={19} /></div>
-          </div>
-          <div className="stat-value" style={{ color: '#059669' }}>
-            ₹ {totalCollected.toLocaleString('en-IN')}
-          </div>
-          <div className="stat-footer">
-            <span>{feesList.filter(f => f.status === 'PAID').length} Paid Receipts</span>
-            <span className="badge badge-emerald">Settled</span>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-card-header">
-            <span className="stat-label">Pending Dues Receivable</span>
-            <div className="stat-icon-wrap stat-icon-rose"><Clock size={19} /></div>
-          </div>
-          <div className="stat-value" style={{ color: '#e11d48' }}>
-            ₹ {totalOutstanding.toLocaleString('en-IN')}
-          </div>
-          <div className="stat-footer">
-            <span>{feesList.filter(f => f.status === 'PENDING').length} Unpaid Accounts</span>
-            <span className="badge badge-rose">Action Required</span>
-          </div>
-        </div>
-      </div>
-
       {/* Navigation tabs */}
-      <div style={{ display: 'flex', gap: '10px' }}>
+      <div style={{ display: 'flex', gap: '10px', overflowX: 'auto' }}>
         <button
-          className={`btn btn-sm ${activeTab === 'dues' ? 'btn-primary' : 'btn-outline'}`}
-          onClick={() => setActiveTab('dues')}
+          className={`btn btn-sm ${currentTab === 'overview' ? 'btn-primary' : 'btn-outline'}`}
+          onClick={() => setTab('overview')}
+          style={{ background: currentTab === 'overview' ? '#0f172a' : '' }}
+        >
+          <LayoutDashboard size={14} />
+          <span>0. Finance Dashboard</span>
+        </button>
+        <button
+          className={`btn btn-sm ${currentTab === 'dues' ? 'btn-primary' : 'btn-outline'}`}
+          onClick={() => setTab('dues')}
+          style={{ background: currentTab === 'dues' ? '#0f172a' : '' }}
         >
           <Receipt size={14} />
-          <span>Student Invoices Ledger ({filteredDues.length})</span>
+          <span>1. Student Invoices Ledger ({filteredDues.length})</span>
         </button>
         <button
-          className={`btn btn-sm ${activeTab === 'structures' ? 'btn-primary' : 'btn-outline'}`}
-          onClick={() => setActiveTab('structures')}
+          className={`btn btn-sm ${currentTab === 'structures' ? 'btn-primary' : 'btn-outline'}`}
+          onClick={() => setTab('structures')}
+          style={{ background: currentTab === 'structures' ? '#0f172a' : '' }}
         >
           <CreditCard size={14} />
-          <span>Fee Structures Configuration ({feeStructures.length})</span>
+          <span>2. Fee Structures ({feeStructures.length})</span>
         </button>
       </div>
 
+      {/* TAB 0: FINANCE DASHBOARD OVERVIEW */}
+      {currentTab === 'overview' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Financial Metrics Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+            <div className="stat-card">
+              <div className="stat-card-header">
+                <span className="stat-label">Total Invoiced (Sem 4)</span>
+                <div className="stat-icon-wrap stat-icon-indigo"><TrendingUp size={19} /></div>
+              </div>
+              <div className="stat-value" style={{ color: '#0f172a' }}>
+                ₹ {totalInvoiced.toLocaleString('en-IN')}
+              </div>
+              <div className="stat-footer">
+                <span>{feesList.length} Invoiced Ledger Entries</span>
+                <span className="badge badge-indigo">Across 20 Students</span>
+              </div>
+            </div>
+
+            <div className="stat-card">
+              <div className="stat-card-header">
+                <span className="stat-label">Total Collections Realized</span>
+                <div className="stat-icon-wrap stat-icon-emerald"><CheckCircle2 size={19} /></div>
+              </div>
+              <div className="stat-value" style={{ color: '#059669' }}>
+                ₹ {totalCollected.toLocaleString('en-IN')}
+              </div>
+              <div className="stat-footer">
+                <span>{feesList.filter(f => f.status === 'PAID').length} Paid Receipts</span>
+                <span className="badge badge-emerald">{totalInvoiced > 0 ? Math.round((totalCollected / totalInvoiced) * 100) : 0}% Realized</span>
+              </div>
+            </div>
+
+            <div className="stat-card">
+              <div className="stat-card-header">
+                <span className="stat-label">Pending Dues Receivable</span>
+                <div className="stat-icon-wrap stat-icon-rose"><Clock size={19} /></div>
+              </div>
+              <div className="stat-value" style={{ color: '#e11d48' }}>
+                ₹ {totalOutstanding.toLocaleString('en-IN')}
+              </div>
+              <div className="stat-footer">
+                <span>{feesList.filter(f => f.status === 'PENDING').length} Unpaid Accounts</span>
+                <span className="badge badge-rose">Action Required</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Fee Realization Progress Meter */}
+          <div className="white-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <div>
+                <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a' }}>
+                  Semester 4 Fee Realization & Collection Meter
+                </h3>
+                <p style={{ fontSize: '12px', color: '#64748b' }}>Statutory recovery target vs actual bank settlements</p>
+              </div>
+              <span className="badge badge-emerald" style={{ fontSize: '13px', fontWeight: '700' }}>
+                {totalInvoiced > 0 ? Math.round((totalCollected / totalInvoiced) * 100) : 0}% Collected
+              </span>
+            </div>
+
+            <div style={{ width: '100%', height: '14px', background: '#f1f5f9', borderRadius: '10px', overflow: 'hidden', display: 'flex' }}>
+              <div 
+                style={{ 
+                  width: `${totalInvoiced > 0 ? Math.round((totalCollected / totalInvoiced) * 100) : 0}%`, 
+                  background: 'linear-gradient(90deg, #10b981 0%, #059669 100%)', 
+                  borderRadius: '10px'
+                }} 
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', fontSize: '12px', color: '#64748b' }}>
+              <span>Settled Collections: <strong>₹ {totalCollected.toLocaleString('en-IN')}</strong></span>
+              <span>Pending Receivables: <strong style={{ color: '#e11d48' }}>₹ {totalOutstanding.toLocaleString('en-IN')}</strong></span>
+            </div>
+          </div>
+
+          {/* Quick Actions & Recent Transactions */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '20px' }}>
+            <div className="white-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a' }}>Recent Paid Invoices</h3>
+                <button className="btn btn-outline btn-sm" onClick={() => setTab('dues')}>
+                  <span>View Full Ledger</span>
+                  <ArrowUpRight size={13} />
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {feesList.filter(f => f.status === 'PAID').slice(0, 5).map((f) => (
+                  <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: '700', color: '#0f172a' }}>{f.studentName || 'Student'} ({f.rollNo || '22CS001'})</div>
+                      <div style={{ fontSize: '11px', color: '#64748b' }}>{f.head} • Paid via UPI</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '13px', fontWeight: '700', color: '#059669' }}>
+                        ₹ {((f.amountInPaise ? f.amountInPaise / 100 : f.amount) || 0).toLocaleString('en-IN')}
+                      </div>
+                      <span className="badge badge-emerald" style={{ fontSize: '10px' }}>Settled</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="white-card">
+              <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a', marginBottom: '14px' }}>
+                Bursar Financial Actions
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <button 
+                  className="btn btn-outline" 
+                  onClick={() => setTab('dues')}
+                  style={{ justifyContent: 'flex-start', padding: '14px 16px', background: '#ffffff' }}
+                >
+                  <Receipt size={16} color="#be123c" />
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontSize: '13px', fontWeight: '700', color: '#0f172a' }}>Reconcile Student Ledger</div>
+                    <div style={{ fontSize: '11px', color: '#64748b' }}>Search and audit {feesList.length} fee invoices across all 20 students</div>
+                  </div>
+                </button>
+
+                <button 
+                  className="btn btn-outline" 
+                  onClick={() => setShowAddModal(true)}
+                  style={{ justifyContent: 'flex-start', padding: '14px 16px', background: '#ffffff' }}
+                >
+                  <CreditCard size={16} color="#4f46e5" />
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontSize: '13px', fontWeight: '700', color: '#0f172a' }}>Configure Fee Head</div>
+                    <div style={{ fontSize: '11px', color: '#64748b' }}>Schedule new semester dues, tuition fees, or lab charges</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* DUES LEDGER */}
-      {activeTab === 'dues' && (
+      {currentTab === 'dues' && (
         <div className="white-card">
           {/* Search and Filters */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
@@ -238,7 +349,7 @@ export default function AccountantPortal({
       )}
 
       {/* STRUCTURES TAB */}
-      {activeTab === 'structures' && (
+      {currentTab === 'structures' && (
         <div className="white-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <div>

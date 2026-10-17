@@ -65,11 +65,6 @@ router.post('/structures', authenticate, requireRole(['admin']), async (req, res
 router.get('/dues', optionalAuth, async (req, res) => {
   const { studentId, status } = req.query;
   try {
-    // In demo mode or if studentId is passed, allow fetching the target student's dues
-    if (!req.user && !studentId) {
-      return res.json({ data: [] });
-    }
-
     let queryText = `
       SELECT fd.*, fs.head, fs.due_date, fs.semester, 
              s.name AS student_name, s.roll_no, s.enrolment_no, u.email AS student_email,
@@ -83,7 +78,7 @@ router.get('/dues', optionalAuth, async (req, res) => {
     `;
     const params = [];
 
-    // Role-based protection: Student can ONLY see their own dues
+    // Role-based scoping: Student can ONLY see their own dues
     if (req.user && req.user.role === 'student') {
       const studentRes = await pool.query('SELECT id FROM students WHERE user_id = $1', [req.user.id]);
       if (studentRes.rows.length > 0) {
@@ -94,8 +89,9 @@ router.get('/dues', optionalAuth, async (req, res) => {
       params.push(studentId);
       queryText += ` AND fd.student_id = $${params.length}`;
     }
+    // If Admin or Accountant (or demo mode with no studentId), all dues are returned
 
-    if (status) {
+    if (status && status !== 'ALL') {
       params.push(status.toUpperCase());
       queryText += ` AND fd.status = $${params.length}`;
     }
@@ -260,31 +256,52 @@ router.post('/verify-razorpay-payment', authenticate, async (req, res) => {
 });
 
 // Sandbox Simulation Payment Flow (Directly implements PRD Flow 3 & FEE-3)
-router.post('/pay-sandbox', authenticate, async (req, res) => {
+router.post('/pay-sandbox', optionalAuth, async (req, res) => {
   const { dueId, mode = 'sandbox_razorpay' } = req.body;
   if (!dueId) return res.status(400).json({ error: 'dueId is required' });
 
+  // Guard in strict production unless explicitly enabled
+  if (process.env.NODE_ENV === 'production' && process.env.ENABLE_SANDBOX_PAYMENTS !== 'true') {
+    return res.status(403).json({ error: 'Sandbox payments are disabled in production environment' });
+  }
+
+  const client = await pool.connect();
   try {
-    const dueRes = await pool.query(`
-      SELECT fd.*, fs.head, s.name AS student_name, u.email AS student_email 
+    await client.query('BEGIN');
+
+    const dueRes = await client.query(`
+      SELECT fd.*, fs.head, s.name AS student_name, s.user_id, u.email AS student_email 
       FROM fee_dues fd 
       JOIN fee_structures fs ON fd.fee_structure_id = fs.id 
       JOIN students s ON fd.student_id = s.id 
       LEFT JOIN users u ON s.user_id = u.id 
       WHERE fd.id = $1
+      FOR UPDATE
     `, [dueId]);
 
-    if (dueRes.rows.length === 0) return res.status(404).json({ error: 'Fee due not found' });
+    if (dueRes.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Fee due not found' });
+    }
     const due = dueRes.rows[0];
 
-    if (due.status === 'PAID') return res.status(400).json({ error: 'Fee is already marked as paid' });
+    // Ownership check: If authenticated student, verify student owns this due
+    if (req.user && req.user.role === 'student' && due.user_id !== req.user.id) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'Unauthorized: You may only settle your own fee dues.' });
+    }
 
-    await pool.query("UPDATE fee_dues SET status = 'PAID' WHERE id = $1", [dueId]);
+    if (due.status === 'PAID') {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Fee is already marked as paid' });
+    }
+
+    await client.query("UPDATE fee_dues SET status = 'PAID' WHERE id = $1", [dueId]);
 
     const receiptNo = `RCP-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
     const gatewayRef = `pay_mock_${crypto.randomBytes(6).toString('hex')}`;
 
-    const paymentRes = await pool.query(
+    const paymentRes = await client.query(
       `INSERT INTO payments (due_id, amount_in_paise, mode, gateway_ref, receipt_no) 
        VALUES ($1, $2, 'sandbox_razorpay', $3, $4) 
        RETURNING *`,
@@ -292,6 +309,7 @@ router.post('/pay-sandbox', authenticate, async (req, res) => {
     );
 
     const payment = paymentRes.rows[0];
+    await client.query('COMMIT');
 
     // Asynchronously dispatch receipt email
     if (due.student_email) {
@@ -313,7 +331,10 @@ router.post('/pay-sandbox', authenticate, async (req, res) => {
       }
     });
   } catch (err) {
+    await client.query('ROLLBACK');
     res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
   }
 });
 
