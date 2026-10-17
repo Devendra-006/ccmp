@@ -1,4 +1,4 @@
-import { pool } from './server/db/postgres.js';
+import { pool } from '../db/postgres.js';
 import bcrypt from 'bcryptjs';
 
 console.log('--- E2E System Test: Database, Auth & Services ---');
@@ -19,7 +19,7 @@ async function runTest() {
     if (!isMatch) throw new Error('Password mismatch for Admin@123');
     console.log('✓ Password hash verified with bcrypt successfully');
 
-    // 3. Test creating a sample department in live Supabase PostgreSQL
+    // 3. Test creating a sample department in live PostgreSQL
     console.log('2. Testing PostgreSQL INSERT & SELECT...');
     const testCode = `TEST_${Date.now().toString().slice(-4)}`;
     const insertDept = await pool.query(
@@ -28,7 +28,7 @@ async function runTest() {
     );
     console.log(`✓ Department inserted into live PostgreSQL: ${insertDept.rows[0].name} (${insertDept.rows[0].code})`);
 
-    // Fetch departments
+    // Fetch departments count
     const depts = await pool.query('SELECT count(*) FROM departments');
     console.log(`✓ Total departments in database: ${depts.rows[0].count}`);
 

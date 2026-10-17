@@ -10,12 +10,24 @@ import examRoutes from './routes/exams.js';
 import feeRoutes from './routes/fees.js';
 import noticeRoutes from './routes/notices.js';
 
+import helmet from 'helmet';
+import { pool } from './db/postgres.js';
+
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+// Security: Helmet for HTTP header protection
+app.use(helmet({ crossOriginResourcePolicy: false }));
+
+// CORS: Lock to client origin with fallback for development
+const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' ? clientUrl : true,
+  credentials: true
+}));
+
 app.use(express.json());
 
 // Free In-Memory Rate Limiting (No paid Redis required)
@@ -38,14 +50,31 @@ const authLimiter = rateLimit({
 app.use('/api/v1', apiLimiter);
 app.use('/api/v1/auth', authLimiter);
 
-// API Root Health Check
-app.get('/api/v1/health', (req, res) => {
-  res.json({
-    status: 'healthy',
+// Cloud Container Health Probe & Observability (Liveness/Readiness Probe)
+app.get('/api/v1/health', async (req, res) => {
+  let dbStatus = 'disconnected';
+  try {
+    await pool.query('SELECT 1');
+    dbStatus = 'connected';
+  } catch (err) {
+    dbStatus = `error: ${err.message}`;
+  }
+
+  const mem = process.memoryUsage();
+  const isHealthy = dbStatus === 'connected';
+
+  res.status(isHealthy ? 200 : 503).json({
+    status: isHealthy ? 'healthy' : 'degraded',
     timestamp: new Date().toISOString(),
     service: 'Cloud Student Management System API',
     version: '1.0.0',
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    uptimeSeconds: Math.floor(process.uptime()),
+    database: dbStatus,
+    memory: {
+      rssMB: Math.round(mem.rss / 1024 / 1024),
+      heapUsedMB: Math.round(mem.heapUsed / 1024 / 1024)
+    }
   });
 });
 

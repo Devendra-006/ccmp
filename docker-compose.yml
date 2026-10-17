@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  # 1. Relational Database Service (PostgreSQL 17)
+  postgres:
+    image: postgres:17-alpine
+    container_name: ccmp-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: ccmp_database
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./server/db/schema.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ccmp_database"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ccmp-network
+
+  # 2. Express Backend REST API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ccmp-api
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: postgresql://postgres:postgrespassword@postgres:5432/ccmp_database
+      CLIENT_URL: http://localhost:80
+      JWT_SECRET: production_cloud_jwt_secret_key_2026_super_secure
+      JWT_EXPIRES_IN: 7d
+    ports:
+      - "5000:5000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5000/api/v1/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - ccmp-network
+
+  # 3. React Frontend Client (Nginx Reverse Proxy)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: ccmp-frontend
+    restart: always
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+    networks:
+      - ccmp-network
+
+networks:
+  ccmp-network:
+    driver: bridge
+
+volumes:
+  pgdata:
+    driver: local

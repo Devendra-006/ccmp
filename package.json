@@ -1,14 +1,18 @@
 {
-  "name": "temp-app",
+  "name": "cloud-student-management-system",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "server": "node server/index.js",
     "build": "vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "db:migrate": "node server/scripts/run_migration.js",
+    "test:services": "node server/scripts/verify_services.js",
+    "test:e2e": "node server/tests/test_e2e_api.js",
+    "cron:attendance": "node server/scripts/cronAttendanceAlert.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",
@@ -17,6 +21,7 @@
     "dotenv": "^18.0.7",
     "express": "^5.3.0",
     "express-rate-limit": "^8.7.1",
+    "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^1.56.0",
     "pg": "^8.23.1",

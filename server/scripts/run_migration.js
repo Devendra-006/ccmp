@@ -11,18 +11,18 @@ const __dirname = path.dirname(__filename);
 
 const { Client } = pg;
 
-async function migrate() {
-  console.log('--- Initializing Database Schema Migration on Supabase PostgreSQL ---');
+export async function migrate() {
+  console.log('--- Initializing Database Schema Migration on PostgreSQL ---');
   const client = new Client({
     connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
+    ssl: process.env.DATABASE_URL?.includes('localhost') ? false : { rejectUnauthorized: false }
   });
 
   try {
     await client.connect();
     console.log('Connected to PostgreSQL successfully.');
 
-    const schemaPath = path.join(__dirname, 'server', 'db', 'schema.sql');
+    const schemaPath = path.join(__dirname, '..', 'db', 'schema.sql');
     const sql = fs.readFileSync(schemaPath, 'utf8');
 
     console.log('Executing schema.sql...');
@@ -47,4 +47,6 @@ async function migrate() {
   }
 }
 
-migrate();
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  migrate();
+}

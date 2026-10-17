@@ -1,8 +1,25 @@
 import express from 'express';
 import { pool } from '../db/postgres.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
+import { logAuditEvent } from '../middleware/audit.js';
 
 const router = express.Router();
+
+// --- AUDIT LOGS (Admin only - PRD SEC-3 & Cloud Observability) ---
+router.get('/audit-logs', authenticate, requireRole(['admin']), async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT a.*, u.email as user_email, u.role as user_role 
+      FROM audit_logs a 
+      LEFT JOIN users u ON a.user_id = u.id 
+      ORDER BY a.created_at DESC 
+      LIMIT 100
+    `);
+    res.json({ data: result.rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // --- DEPARTMENTS ---
 router.get('/departments', async (req, res) => {
@@ -23,7 +40,18 @@ router.post('/departments', authenticate, requireRole(['admin']), async (req, re
       'INSERT INTO departments (code, name) VALUES ($1, $2) RETURNING *',
       [code.trim().toUpperCase(), name.trim()]
     );
-    res.status(201).json({ message: 'Department created', data: result.rows[0] });
+    const dept = result.rows[0];
+    
+    // Record immutable audit log
+    await logAuditEvent({
+      userId: req.user ? req.user.id : null,
+      action: 'CREATE_DEPARTMENT',
+      entity: 'Department',
+      entityId: dept.id,
+      ipAddress: req.ip
+    });
+
+    res.status(201).json({ message: 'Department created', data: dept });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

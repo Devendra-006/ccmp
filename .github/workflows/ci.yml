@@ -1,0 +1,65 @@
+name: CCMP Cloud CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    name: Lint, Test, and Build
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgrespassword
+          POSTGRES_DB: ccmp_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Runtime (v20)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Code Quality & Linting
+        run: npm run lint
+
+      - name: Initialize Database Schema
+        env:
+          DATABASE_URL: postgresql://postgres:postgrespassword@localhost:5432/ccmp_test
+        run: node server/scripts/run_migration.js
+
+      - name: Run Backend Integration Tests
+        env:
+          DATABASE_URL: postgresql://postgres:postgrespassword@localhost:5432/ccmp_test
+          JWT_SECRET: ci_pipeline_jwt_secret_key_testing_1234
+        run: |
+          node server/db/initDb.js
+          node server/tests/test_e2e_api.js
+
+      - name: Build Frontend Client (Vite)
+        run: npm run build
+
+      - name: Verify Docker Container Build (Backend)
+        run: docker build -t ccmp-api:latest .
+
+      - name: Verify Docker Container Build (Frontend)
+        run: docker build -f Dockerfile.frontend -t ccmp-frontend:latest .
