@@ -266,59 +266,6 @@ export default function AdminPortal({
             </div>
           </div>
 
-          {/* Cloud Infrastructure & System Status */}
-          <div className="white-card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
-              <div>
-                <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Server size={18} color="#4f46e5" />
-                  <span>Cloud Architecture & Services Topology</span>
-                </h3>
-                <p style={{ fontSize: '12px', color: '#64748b' }}>
-                  Live multi-tenant microservices deployment status across cloud infrastructure
-                </p>
-              </div>
-              <span className="badge badge-emerald" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Activity size={14} />
-                <span>All Microservices Operational</span>
-              </span>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-              <div style={{ padding: '14px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', textTransform: 'uppercase' }}>Database Engine</div>
-                <div style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a', marginTop: '4px' }}>Supabase PostgreSQL 17</div>
-                <div style={{ fontSize: '12px', color: '#059669', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '6px' }}>
-                  <CheckCircle2 size={13} /> SSL Secured • Port 5432
-                </div>
-              </div>
-
-              <div style={{ padding: '14px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', textTransform: 'uppercase' }}>In-Memory Cache</div>
-                <div style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a', marginTop: '4px' }}>Upstash / Redis Layer</div>
-                <div style={{ fontSize: '12px', color: '#059669', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '6px' }}>
-                  <CheckCircle2 size={13} /> Active • Rate Limiting
-                </div>
-              </div>
-
-              <div style={{ padding: '14px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', textTransform: 'uppercase' }}>Backend API Gateway</div>
-                <div style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a', marginTop: '4px' }}>Node / Express 4.19</div>
-                <div style={{ fontSize: '12px', color: '#059669', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '6px' }}>
-                  <CheckCircle2 size={13} /> Port 5000 • Trust Proxy
-                </div>
-              </div>
-
-              <div style={{ padding: '14px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', textTransform: 'uppercase' }}>Mailer & Dispatcher</div>
-                <div style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a', marginTop: '4px' }}>Resend API / SMTP</div>
-                <div style={{ fontSize: '12px', color: '#059669', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '6px' }}>
-                  <CheckCircle2 size={13} /> HTML Sanitized • Active
-                </div>
-              </div>
-            </div>
-          </div>
-
           {/* Quick Action Launchpad */}
           <div className="white-card">
             <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a', marginBottom: '14px' }}>
