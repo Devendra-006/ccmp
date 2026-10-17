@@ -18,8 +18,10 @@ export default function SandboxPaymentModal({ feeItem, onClose, onPaymentSuccess
   const [isPaid, setIsPaid] = useState(false);
   const [transactionId, setTransactionId] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
-
-  const amount = feeItem ? feeItem.dueAmount || feeItem.totalAmount : 12500;
+  const rawAmount = feeItem 
+    ? (feeItem.amountInPaise ? feeItem.amountInPaise / 100 : (feeItem.dueAmount || feeItem.totalAmount || feeItem.amount || 12500))
+    : 12500;
+  const amount = (typeof rawAmount === 'number' && !isNaN(rawAmount)) ? rawAmount : 12500;
 
   const handleSimulatePayment = async () => {
     setIsProcessing(true);
@@ -99,7 +101,7 @@ export default function SandboxPaymentModal({ feeItem, onClose, onPaymentSuccess
               <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <div>
                   <div style={{ fontSize: '12px', color: '#64748b' }}>Paying for:</div>
-                  <div style={{ fontSize: '13.5px', fontWeight: '700', color: '#0f172a' }}>{feeItem ? feeItem.title : 'Semester Assessment Dues'}</div>
+                  <div style={{ fontSize: '13.5px', fontWeight: '700', color: '#0f172a' }}>{feeItem ? (feeItem.title || feeItem.head || 'Semester Assessment Dues') : 'Semester Assessment Dues'}</div>
                   <div style={{ fontSize: '11px', color: '#94a3b8' }}>Student: {studentProfile.name} ({studentProfile.rollNo})</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>

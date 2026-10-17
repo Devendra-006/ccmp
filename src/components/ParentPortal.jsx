@@ -98,8 +98,8 @@ export default function ParentPortal({
         })}
       </div>
 
-      {/* Ward Profile & Quick Metrics (Shown in Overview, Attendance, and Academics) */}
-      {(section === 'overview' || section === 'attendance' || section === 'academics') && (
+      {/* Ward Profile & Quick Metrics (Shown in Overview, Attendance, Academics, and Fees) */}
+      {(section === 'overview' || section === 'attendance' || section === 'academics' || section === 'fees') && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
           {/* Attendance Metric */}
           <div className="stat-card">
@@ -208,29 +208,56 @@ export default function ParentPortal({
             {pendingDues.length === 0 ? (
               <div style={{ padding: '32px 16px', textAlign: 'center', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
                 <CheckCircle2 size={36} color="#16a34a" style={{ margin: '0 auto 8px' }} />
-                <div style={{ fontWeight: '700', color: '#166534' }}>All Academic Dues Cleared</div>
+                <div style={{ fontWeight: '700', color: '#166534' }}>All Current Academic Dues Cleared</div>
                 <div style={{ fontSize: '12px', color: '#15803d', marginTop: '4px' }}>
                   No outstanding fees pending for Semester 4. Thank you!
+                </div>
+                <div style={{ marginTop: '16px' }}>
+                  <button 
+                    className="btn btn-sm btn-outline"
+                    onClick={() => onInitiatePayment({
+                      id: `adv-${Date.now()}`,
+                      head: 'Advance Semester 5 Academic Dues',
+                      title: 'Advance Semester 5 Academic Dues',
+                      amountInPaise: 1500000,
+                      dueAmount: 15000,
+                      totalAmount: 15000,
+                      amount: 15000
+                    })}
+                    style={{ borderColor: '#16a34a', color: '#166534', background: '#ffffff', gap: '6px' }}
+                  >
+                    <CreditCard size={14} />
+                    <span>Make Pre-Payment / Advance Deposit (Sandbox)</span>
+                  </button>
                 </div>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {pendingDues.map((fee) => {
-                  const amt = fee.amountInPaise ? fee.amountInPaise / 100 : fee.amount;
+                  const amt = fee.amountInPaise ? fee.amountInPaise / 100 : (fee.dueAmount || fee.totalAmount || fee.amount || 12500);
                   return (
                     <div key={fee.id} style={{ padding: '14px', borderRadius: '8px', border: '1px solid #fecdd3', background: '#fff1f2', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
-                        <div style={{ fontSize: '13.5px', fontWeight: '700', color: '#9f1239' }}>{fee.head}</div>
+                        <div style={{ fontSize: '13.5px', fontWeight: '700', color: '#9f1239' }}>{fee.head || fee.title || 'Semester Dues'}</div>
                         <div style={{ fontSize: '11px', color: '#be123c', marginTop: '2px' }}>
-                          Due Date: {new Date(fee.dueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          Due Date: {fee.dueDate ? new Date(fee.dueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'April 15, 2026'}
                         </div>
                       </div>
                       <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
                         <div style={{ fontSize: '16px', fontWeight: '800', color: '#9f1239' }}>₹ {amt.toLocaleString('en-IN')}</div>
                         <button 
                           className="btn btn-sm btn-primary" 
-                          onClick={() => onInitiatePayment(fee)}
-                          style={{ background: '#be123c', borderColor: '#be123c' }}
+                          onClick={() => onInitiatePayment({
+                            ...fee,
+                            id: fee.id,
+                            head: fee.head || fee.title || 'Semester Dues',
+                            title: fee.head || fee.title || 'Semester Dues',
+                            amountInPaise: fee.amountInPaise || (amt * 100),
+                            dueAmount: amt,
+                            totalAmount: amt,
+                            amount: amt
+                          })}
+                          style={{ background: '#be123c', borderColor: '#be123c', cursor: 'pointer' }}
                         >
                           <CreditCard size={13} />
                           <span>Pay Online</span>
@@ -245,17 +272,26 @@ export default function ParentPortal({
             {/* Paid History snippet */}
             <div style={{ marginTop: '20px', borderTop: '1px solid #f1f5f9', paddingTop: '14px' }}>
               <div style={{ fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>
-                Recent Cleared Payments
+                Cleared Institutional Payments
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: '#f8fafc', borderRadius: '6px' }}>
-                <div>
-                  <div style={{ fontSize: '12.5px', fontWeight: '600', color: '#0f172a' }}>Semester 4 Tuition Fee</div>
-                  <div style={{ fontSize: '11px', color: '#64748b' }}>Receipt: RCP-2026-849102 • Paid via UPI</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '13px', fontWeight: '700', color: '#059669' }}>₹ 65,000</div>
-                  <span className="badge badge-emerald" style={{ fontSize: '10px' }}>Settled</span>
-                </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {(feesList.filter(f => f.status === 'PAID').length > 0 ? feesList.filter(f => f.status === 'PAID') : [
+                  { id: 'p1', head: 'Semester 4 Tuition Fee', amountInPaise: 6500000, receipt_no: 'RCP-2026-849102' }
+                ]).map((pf, pIdx) => {
+                  const pAmt = pf.amountInPaise ? pf.amountInPaise / 100 : (pf.amount || 65000);
+                  return (
+                    <div key={pf.id || pIdx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: '#f8fafc', borderRadius: '6px' }}>
+                      <div>
+                        <div style={{ fontSize: '12.5px', fontWeight: '600', color: '#0f172a' }}>{pf.head || 'Semester Tuition'}</div>
+                        <div style={{ fontSize: '11px', color: '#64748b' }}>Receipt: {pf.payment?.receiptNo || pf.receipt_no || 'RCP-2026-849102'} • Paid Online</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '13px', fontWeight: '700', color: '#059669' }}>₹ {pAmt.toLocaleString('en-IN')}</div>
+                        <span className="badge badge-emerald" style={{ fontSize: '10px' }}>Settled</span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
