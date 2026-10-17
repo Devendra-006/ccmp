@@ -28,6 +28,28 @@ export async function authenticate(req, res, next) {
   }
 }
 
+export async function optionalAuth(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    req.user = null;
+    return next();
+  }
+
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const result = await pool.query(
+      'SELECT id, email, role, status FROM users WHERE id = $1 AND status = $2', 
+      [decoded.id, 'active']
+    );
+    req.user = result.rows.length > 0 ? result.rows[0] : null;
+    next();
+  } catch (_) {
+    req.user = null;
+    next();
+  }
+}
+
 export function requireRole(allowedRoles = []) {
   return (req, res, next) => {
     if (!req.user) {

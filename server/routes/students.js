@@ -1,13 +1,13 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import { pool } from '../db/postgres.js';
-import { authenticate, requireRole } from '../middleware/auth.js';
+import { authenticate, optionalAuth, requireRole } from '../middleware/auth.js';
 import { sendWelcomeCredentialsEmail } from '../services/mailer.js';
 
 const router = express.Router();
 
 // Get students directory
-router.get('/', authenticate, async (req, res) => {
+router.get('/', optionalAuth, async (req, res) => {
   const { programmeId, semester, section, search } = req.query;
   try {
     let queryText = `

@@ -4,7 +4,7 @@ import { authenticate, requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
 
-router.get('/', authenticate, async (req, res) => {
+router.get('/', async (req, res) => {
   const { category, audience } = req.query;
   try {
     let queryText = `

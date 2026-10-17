@@ -5,8 +5,17 @@ dotenv.config();
 
 const resendApiKey = process.env.RESEND_API_KEY;
 const defaultSender = process.env.EMAIL_FROM || 'Campus Management <onboarding@resend.dev>';
+const sandboxRecipient = process.env.RESEND_TEST_RECIPIENT || 'devendra.dhokare24@mmit.edu.in';
 
 export const resend = new Resend(resendApiKey);
+
+function resolveRecipient(to) {
+  // If in sandbox mode without custom domain, Resend only permits verified account email
+  if (process.env.NODE_ENV !== 'production' && defaultSender.includes('onboarding@resend.dev')) {
+    return sandboxRecipient;
+  }
+  return to;
+}
 
 /**
  * Send automated fee payment confirmation & receipt email
@@ -42,7 +51,7 @@ export async function sendFeeReceiptEmail({ to, studentName, receiptNo, amount, 
 
   return await resend.emails.send({
     from: defaultSender,
-    to: [to],
+    to: [resolveRecipient(to)],
     subject: `Fee Payment Receipt - ${receiptNo} (${feeHead})`,
     html
   });

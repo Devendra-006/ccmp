@@ -1,14 +1,14 @@
 import express from 'express';
 import crypto from 'crypto';
 import { pool } from '../db/postgres.js';
-import { authenticate, requireRole } from '../middleware/auth.js';
+import { authenticate, optionalAuth, requireRole } from '../middleware/auth.js';
 import { createRazorpayOrder, verifyRazorpaySignature } from '../services/razorpay.js';
 import { sendFeeReceiptEmail } from '../services/mailer.js';
 
 const router = express.Router();
 
 // List fee structures
-router.get('/structures', authenticate, async (req, res) => {
+router.get('/structures', optionalAuth, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT fs.*, p.name AS programme_name 
@@ -62,9 +62,13 @@ router.post('/structures', authenticate, requireRole(['admin']), async (req, res
 });
 
 // Get dues (Student sees own; Admin sees all - PRD FEE-2)
-router.get('/dues', authenticate, async (req, res) => {
+router.get('/dues', optionalAuth, async (req, res) => {
   const { studentId, status } = req.query;
   try {
+    if (!req.user) {
+      return res.json({ data: [] });
+    }
+
     let queryText = `
       SELECT fd.*, fs.head, fs.due_date, fs.semester, 
              s.name AS student_name, s.roll_no, s.enrolment_no, u.email AS student_email,
