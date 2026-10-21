@@ -5,9 +5,6 @@ import {
   CheckCircle2, 
   Users, 
   BookOpen, 
-  Plus, 
-  ShieldCheck,
-  AlertCircle,
   Check,
   X,
   Clock,
@@ -27,14 +24,13 @@ export default function TeacherPortal({
   const currentTab = activeTab || 'overview';
   const [selectedSubjectId, setSelectedSubjectId] = useState(subjects[0]?.id || '');
   const [period, setPeriod] = useState('01');
-  const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0]);
+  const [attendanceDate, setAttendanceDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [attendanceRoster, setAttendanceRoster] = useState({}); // { studentId: 'present' | 'absent' | 'late' }
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [markedSessions, setMarkedSessions] = useState(new Set()); // key: `${subId}_${date}_${period}`
 
   // Marks state
   const [examName, setExamName] = useState('Mid-Term Assessment 2026');
-  const [examType, setExamType] = useState('mid_term');
   const [maxMarks, setMaxMarks] = useState(50);
   const [marksSheet, setMarksSheet] = useState({}); // { studentId: number }
 

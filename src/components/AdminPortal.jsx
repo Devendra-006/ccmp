@@ -10,13 +10,10 @@ import {
   Plus, 
   Search,
   Trash2,
-  Edit2,
   AlertTriangle,
   Server,
   Activity,
-  ShieldCheck,
-  Loader2,
-  X
+  Loader2
 } from 'lucide-react';
 
 export default function AdminPortal({
@@ -25,7 +22,6 @@ export default function AdminPortal({
   subjects = [],
   students = [],
   onAddDepartment,
-  onAddProgramme,
   onAddSubject,
   onEnrollStudent,
   onAddFeeStructure,
@@ -37,7 +33,6 @@ export default function AdminPortal({
 
   // Form states
   const [deptForm, setDeptForm] = useState({ code: '', name: '' });
-  const [progForm, setProgForm] = useState({ code: '', name: '', departmentId: '' });
   const [subForm, setSubForm] = useState({ 
     code: '', 
     name: '', 
@@ -63,7 +58,6 @@ export default function AdminPortal({
   const [toastMessage, setToastMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [itemToDelete, setItemToDelete] = useState(null); // { type: 'subject'|'dept', id, name }
-  const [editingSubject, setEditingSubject] = useState(null);
 
   const showToast = (msg) => {
     setToastMessage(msg);

@@ -3,22 +3,18 @@ import {
   CreditCard, 
   Receipt, 
   Search, 
-  Filter, 
   CheckCircle2, 
   Clock, 
   Download, 
   Plus,
   ArrowUpRight,
   TrendingUp,
-  AlertCircle,
-  FileSpreadsheet,
   LayoutDashboard
 } from 'lucide-react';
 
 export default function AccountantPortal({
   feeStructures = [],
   feesList = [],
-  students = [],
   onAddFeeStructure,
   onViewReceipt,
   activeSection = 'overview',

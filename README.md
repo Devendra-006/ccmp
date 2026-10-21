@@ -17,6 +17,13 @@ Unlike traditional monoliths, this platform is architected around **stateless co
 
 ---
 
+## 📚 Technical Documentation
+- 📐 [Cloud System Architecture & Technical Specifications](docs/ARCHITECTURE.md)
+- 📋 [Product Requirements Document (PRD)](docs/PRD.pdf)
+- 🛡️ [Improvement Plan & Security Roadmap](docs/ROADMAP.md)
+
+---
+
 ## 🏗️ Cloud System Architecture
 
 ```mermaid
