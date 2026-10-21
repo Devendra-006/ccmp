@@ -213,26 +213,5 @@ npm run build
 
 ---
 
-## 🎓 Examiner Viva Q&A Guide
 
-Prepare these concise answers for your project evaluation:
-
-1. **Q: Why this cloud architecture over a traditional local server?**
-   * *Answer:* Scalability and resilience. The frontend is delivered globally via CDN edges. The API layer is stateless and horizontally scalable inside Docker containers. The database tier uses cloud PostgreSQL with automated replication and connection pooling.
-
-2. **Q: How does the system handle high traffic during exam results release?**
-   * *Answer:* The API is stateless with connection pooling via PgBouncer. High-traffic endpoints utilize database indexes on `student_id` and `exam_id`. Sensitive routes are protected by `express-rate-limit` to prevent denial-of-service.
-
-3. **Q: How are credentials and sensitive data secured in the cloud?**
-   * *Answer:* Never committed to source control; managed via runtime environment variables. Passwords are encrypted with salt using `bcryptjs`. APIs enforce JWT bearer authorization with role checks. HTTP headers are protected via `helmet`.
-
-4. **Q: What happens if the API server crashes?**
-   * *Answer:* Docker container restart policies (`restart: always`) automatically revive the process in seconds. Database state remains intact because persistence is isolated in a separate managed cloud database.
-
-5. **Q: Where is serverless compute demonstrated in this project?**
-   * *Answer:* In `serverless/receipt-generator/handler.js`, which encapsulates an AWS Lambda event handler for fee receipt rendering, and in `.github/workflows/cron.yml` which executes scheduled attendance audits serverlessly.
-
----
-
-## 📄 License
 This project is licensed under the [MIT License](LICENSE).
